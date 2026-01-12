@@ -1,0 +1,14 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "Email": {
+    "Smtp": {
+      "User": "TU_USUARIO_BREVO",
+      "Password": "TU_PASSWORD_BREVO"
+    }
+  }
+}

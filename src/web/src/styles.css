@@ -1,0 +1,327 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===================== */
+/*  COMPONENT UTILITIES  */
+/* ===================== */
+@layer components {
+  .form-card {
+    @apply rounded-2xl border border-white/10 bg-white/5 backdrop-blur shadow-soft p-6;
+  }
+
+  .section-title {
+    @apply text-white/90 font-semibold mb-3;
+  }
+
+  .field-label {
+    @apply block text-sm font-medium text-white/80 mb-1;
+  }
+
+  .field-input {
+    @apply w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-lg bg-white/10 border border-white/20 px-4 py-2 text-white hover:bg-white/20 transition disabled:opacity-60;
+  }
+}
+
+/* Mejor contraste para <select> y su desplegable */
+select.field-input {
+  background-color: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+  select.field-input option {
+    background-color: #111827;
+    color: #fff;
+  }
+
+/* ===================== */
+/*     VORLUNO THEME     */
+/* ===================== */
+:root {
+  /* Colores primarios Vorluno */
+  --vorluno-violet: #7C3AED;        /* Creatividad, innovación */
+  --vorluno-cyan: #06B6D4;          /* Modernidad, tecnología */
+  --vorluno-slate: #0F172A;         /* Profesionalismo, confianza */
+
+  /* Derivados violet */
+  --vorluno-violet-dark: #6D28D9;
+  --vorluno-violet-light: #A78BFA;
+
+  /* Derivados cyan */
+  --vorluno-cyan-dark: #0891B2;
+  --vorluno-cyan-light: #22D3EE;
+
+  /* Derivados slate */
+  --vorluno-slate-light: #1E293B;
+  --vorluno-slate-lighter: #334155;
+
+  /* UI surface and text colors */
+  --vorluno-surface: #0F172A;
+  --vorluno-card: #111827FA;
+  --vorluno-text: #E5E7EB;
+  --vorluno-muted: #94A3B8;
+  --vorluno-border: #334155;
+  --vorluno-ring: var(--vorluno-cyan);
+  --vorluno-success: #16A34A;
+  --vorluno-error: #F87171;
+
+  /* altura del sticky (se actualiza en runtime) */
+  --sticky-h: 72px;
+}
+
+.form-card {
+  background: var(--vorluno-card);
+  border: 1px solid var(--vorluno-border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.30);
+}
+
+.section-title {
+  color: var(--vorluno-text);
+  font-weight: 600;
+  font-size: 1.125rem;
+  letter-spacing: .2px;
+}
+
+.label, .field-label {
+  display: block;
+  color: var(--vorluno-muted);
+  font-size: .9rem;
+  margin-bottom: 6px;
+}
+
+.input, .field-input, select.field-input, textarea.field-input {
+  width: 100%;
+  background: rgba(17,24,39,.5);
+  color: var(--vorluno-text);
+  border: 1px solid var(--vorluno-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: 0;
+  transition: border-color .15s,box-shadow .15s,background .15s;
+  font-size: 16px; /* evita auto-zoom en iOS */
+}
+
+  .field-input::placeholder {
+    color: #94a3b87a;
+  }
+
+  .field-input:focus {
+    border-color: var(--vorluno-ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--vorluno-ring) 25%, transparent);
+  }
+
+  .field-input[aria-invalid="true"] {
+    border-color: var(--vorluno-error);
+  }
+
+.error-text {
+  color: var(--vorluno-error);
+  font-size: .85rem;
+  margin-top: 6px;
+}
+
+.helper-text {
+  color: var(--vorluno-muted);
+  font-size: .85rem;
+  margin-top: 6px;
+}
+
+/* Pastillas (servicios) – tap-target >= 44px en móvil */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  gap: 8px;
+  border: 1px solid var(--vorluno-border);
+  border-radius: 999px;
+  background: rgba(255,255,255,.03);
+  color: var(--vorluno-text);
+}
+
+  .pill[aria-pressed="true"] {
+    border-color: var(--vorluno-ring);
+    box-shadow: inset 0 0 0 1px var(--vorluno-ring);
+  }
+
+/* Radios/checkbox más cómodos */
+label.inline-flex input[type="radio"], label.inline-flex input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+label.inline-flex {
+  min-height: 40px;
+  gap: 8px;
+}
+
+.vorluno-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--vorluno-violet) 0%, var(--vorluno-cyan) 100%);
+  color: #fff;
+  border: 0;
+  box-shadow: 0 10px 30px -10px rgba(124, 58, 237, 0.5);
+  transition: all 0.3s ease;
+}
+
+  .vorluno-btn:hover:not(:disabled) {
+    box-shadow: 0 20px 40px -10px rgba(124, 58, 237, 0.7);
+    transform: translateY(-2px);
+  }
+
+  .vorluno-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+  }
+
+/* Requeridos (visual) */
+.field-label.required::after {
+  content: " *";
+  color: var(--vorluno-error);
+  margin-left: 2px;
+}
+
+/* Spinner simple */
+@keyframes vorluno-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vorluno-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: vorluno-spin .8s linear infinite;
+}
+
+/* ===================== */
+/*   MOBILE: STICKY SAFE */
+/* ===================== */
+.has-sticky-pad {
+  padding-bottom: calc(var(--sticky-h) + env(safe-area-inset-bottom,0px));
+}
+
+input, select, textarea, [role="textbox"] {
+  scroll-margin-bottom: calc(var(--sticky-h) + 24px);
+}
+
+.form-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: rgba(8,12,22,.86);
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+/* utilidades varias */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
+/* ===================== */
+/*  GRADIENTES Y EFECTOS */
+/* ===================== */
+
+/* Gradiente principal Vorluno (violet → cyan) */
+.vorluno-gradient {
+  background: linear-gradient(135deg, var(--vorluno-violet) 0%, var(--vorluno-cyan) 100%);
+}
+
+/* Gradiente invertido (cyan → violet) */
+.vorluno-gradient-reverse {
+  background: linear-gradient(135deg, var(--vorluno-cyan) 0%, var(--vorluno-violet) 100%);
+}
+
+/* Gradiente sutil para fondos */
+.vorluno-gradient-subtle {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+}
+
+/* Glassmorphism card */
+.vorluno-glass {
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Glassmorphism ligero */
+.vorluno-glass-light {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Borde con gradiente */
+.vorluno-border-gradient {
+  position: relative;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.vorluno-border-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  margin: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--vorluno-violet) 0%, var(--vorluno-cyan) 100%);
+}
+
+/* Texto con gradiente */
+.vorluno-text-gradient {
+  background: linear-gradient(135deg, var(--vorluno-violet) 0%, var(--vorluno-cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Sombra con color de marca */
+.vorluno-shadow {
+  box-shadow: 0 10px 40px -10px rgba(124, 58, 237, 0.5);
+}
+
+.vorluno-shadow-lg {
+  box-shadow: 0 20px 60px -15px rgba(124, 58, 237, 0.6);
+}
+
+/* Hover lift effect */
+.vorluno-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.vorluno-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -10px rgba(124, 58, 237, 0.7);
+}

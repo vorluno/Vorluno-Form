@@ -1,0 +1,171 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>35392c65-ad6d-4a74-9db1-085731ba91d8</UserSecretsId>
+
+		<!-- Vite compila el front -->
+		<TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+
+		<!-- Evita que el SDK duplique wwwroot -->
+		<EnableDefaultContentItems>false</EnableDefaultContentItems>
+
+		<!-- Rutas SPA (usar forward slashes para compatibilidad Linux/Windows) -->
+		<SpaRoot>ClientApp/</SpaRoot>
+		<SpaDist>$(SpaRoot)dist/</SpaDist>
+	</PropertyGroup>
+
+	<!-- No dejes que MSBuild meta ClientApp en el publish -->
+	<ItemGroup>
+		<Compile Remove="Components/**" />
+		<Content Remove="ClientApp/**/*" />
+		<Content Remove="Components/**" />
+		<None Include="ClientApp/**/*" Exclude="ClientApp/node_modules/**;ClientApp/dist/**" />
+		<EmbeddedResource Remove="Components/**" />
+		<None Remove="Components/**" />
+	</ItemGroup>
+
+	<!-- Publica wwwroot una sola vez con lo que haya salido de Vite -->
+	<!-- Este ItemGroup se actualiza dinámicamente después de CopySpaToWwwroot -->
+	<ItemGroup>
+		<Content Include="wwwroot/**/*.*"
+				 Exclude="wwwroot/.gitkeep;wwwroot/**/.gitkeep;wwwroot/**/*.map">
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="ClosedXML" Version="0.105.0" />
+		<PackageReference Include="MailKit" Version="4.14.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+	</ItemGroup>
+
+	<!-- 1) Build del front -->
+	<Target Name="BuildSpa"
+			BeforeTargets="ComputeFilesToPublish"
+			Condition="'$(SkipSpaBuild)' != 'true'">
+		<Message Text="▶️ Construyendo SPA (Vite)..." Importance="high" />
+		<Exec Command="npm ci" 
+			  WorkingDirectory="$(SpaRoot)" 
+			  ContinueOnError="false" />
+		<Exec Command="npm run build" 
+			  WorkingDirectory="$(SpaRoot)" 
+			  ContinueOnError="false" />
+		<Message Text="✅ Build SPA completado" Importance="high" />
+	</Target>
+
+	<!-- 2) Copia dist a wwwroot del proyecto (sin .map) -->
+	<!-- IMPORTANTE: Este target debe ejecutarse ANTES de ComputeFilesToPublish -->
+	<Target Name="CopySpaToWwwroot"
+			AfterTargets="BuildSpa"
+			BeforeTargets="ComputeFilesToPublish"
+			Condition="'$(SkipSpaBuild)' != 'true'">
+		<Message Text="📦 Copiando SPA a wwwroot..." Importance="high" />
+		<Message Text="SpaDist: $(SpaDist)" Importance="high" />
+		<Message Text="ProjectDir: $(ProjectDir)" Importance="high" />
+		
+		<!-- Verificar que dist existe -->
+		<PropertyGroup>
+			<SpaDistPath>$(ProjectDir)$(SpaDist)</SpaDistPath>
+			<WwwrootPath>$(ProjectDir)wwwroot</WwwrootPath>
+		</PropertyGroup>
+		
+		<Error Condition="!Exists('$(SpaDistPath)')" 
+			   Text="❌ ERROR: No se encontró $(SpaDistPath). El build de Vite falló." />
+		
+		<ItemGroup>
+			<SpaFiles Include="$(SpaDist)**/*" Exclude="$(SpaDist)**/*.map" />
+		</ItemGroup>
+		
+		<Error Condition="@(SpaFiles->Count()) == 0" 
+			   Text="❌ ERROR: No se encontraron archivos en $(SpaDist)" />
+		
+		<RemoveDir Directories="$(WwwrootPath)" Condition="Exists('$(WwwrootPath)')" />
+		<MakeDir Directories="$(WwwrootPath)" />
+		
+		<Copy SourceFiles="@(SpaFiles)"
+			  DestinationFiles="@(SpaFiles->'$(WwwrootPath)/%(RecursiveDir)%(Filename)%(Extension)')"
+			  SkipUnchangedFiles="true" />
+		
+		<Message Text="✅ Archivos copiados: @(SpaFiles->Count())" Importance="high" />
+		
+		<!-- Listar archivos copiados para debugging -->
+		<Message Text="📋 Archivos en wwwroot después de copiar:" Importance="high" />
+		<ItemGroup>
+			<WwwrootFiles Include="$(WwwrootPath)/**/*" />
+		</ItemGroup>
+		<Message Text="  - %(WwwrootFiles.Identity)" Importance="high" />
+		
+		<!-- Verificar que index.html existe en wwwroot -->
+		<Error Condition="!Exists('$(WwwrootPath)/index.html')" 
+			   Text="❌ ERROR: index.html no se copió a wwwroot" />
+		
+		<!-- Verificar que hay al menos un archivo JS en assets -->
+		<ItemGroup>
+			<JsFiles Include="$(WwwrootPath)/assets/*.js" />
+		</ItemGroup>
+		<Error Condition="@(JsFiles->Count()) == 0" 
+			   Text="❌ ERROR: No se encontraron archivos JS en $(WwwrootPath)/assets. Archivos encontrados: @(WwwrootFiles->Count())" />
+		
+		<!-- Asegurar que los archivos de wwwroot se incluyan en el publish -->
+		<!-- Esto actualiza dinámicamente el ItemGroup de Content -->
+		<ItemGroup>
+			<Content Include="$(WwwrootPath)/**/*.*"
+					 Exclude="$(WwwrootPath)/.gitkeep;$(WwwrootPath)/**/.gitkeep;$(WwwrootPath)/**/*.map">
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			</Content>
+		</ItemGroup>
+		
+		<Message Text="✅ Copia a wwwroot completada exitosamente" Importance="high" />
+	</Target>
+
+	<!-- 3) Copia wwwroot (ya con la SPA) al directorio de publicación por si el ItemGroup no alcanza -->
+	<Target Name="CopySpaToPublishDir"
+			DependsOnTargets="CopySpaToWwwroot"
+			AfterTargets="CopyFilesToPublishDirectory"
+			Condition="'$(SkipSpaBuild)' != 'true'">
+		<Message Text="🚚 Copiando SPA a $(PublishDir)wwwroot..." Importance="high" />
+		<PropertyGroup>
+			<WwwrootPath>$(ProjectDir)wwwroot</WwwrootPath>
+			<PublishWwwrootPath>$(PublishDir)wwwroot</PublishWwwrootPath>
+		</PropertyGroup>
+		<ItemGroup>
+			<PublishSpaFiles Include="$(WwwrootPath)/**/*.*"
+							 Exclude="$(WwwrootPath)/.gitkeep;$(WwwrootPath)/**/.gitkeep;$(WwwrootPath)/**/*.map" />
+		</ItemGroup>
+		<MakeDir Directories="$(PublishWwwrootPath)" />
+		<Copy SourceFiles="@(PublishSpaFiles)"
+			  DestinationFiles="@(PublishSpaFiles->'$(PublishWwwrootPath)/%(RecursiveDir)%(Filename)%(Extension)')"
+			  SkipUnchangedFiles="true" />
+		<Message Text="✅ Copia a publish completada: @(PublishSpaFiles->Count()) archivos" Importance="high" />
+	</Target>
+
+	<!-- 4) Verificar que los archivos están en el directorio de publicación -->
+	<Target Name="VerifyPublishFiles"
+			AfterTargets="CopySpaToPublishDir"
+			Condition="'$(SkipSpaBuild)' != 'true'">
+		<Message Text="🔍 Verificando archivos en el directorio de publicación..." Importance="high" />
+		<PropertyGroup>
+			<PublishWwwrootPath>$(PublishDir)wwwroot</PublishWwwrootPath>
+		</PropertyGroup>
+		
+		<ItemGroup>
+			<PublishWwwrootFiles Include="$(PublishWwwrootPath)/**/*" />
+		</ItemGroup>
+		
+		<Message Text="📋 Archivos en $(PublishWwwrootPath):" Importance="high" />
+		<Message Text="  - %(PublishWwwrootFiles.Identity)" Importance="high" />
+		
+		<!-- Verificar que el JS está en el publish -->
+		<ItemGroup>
+			<PublishJsFiles Include="$(PublishWwwrootPath)/assets/*.js" />
+		</ItemGroup>
+		<Error Condition="@(PublishJsFiles->Count()) == 0" 
+			   Text="❌ ERROR: No se encontraron archivos JS en $(PublishWwwrootPath)/assets después del publish" />
+		
+		<Message Text="✅ Verificación de archivos de publicación completada" Importance="high" />
+	</Target>
+
+</Project>

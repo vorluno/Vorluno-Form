@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+docs/
+*.md
+
+# IDE
+.vscode/
+.vs/
+.idea/
+
+# Build outputs
+**/bin/
+**/obj/
+**/dist/
+**/node_modules/
+**/.pnpm-debug.log*
+
+# Environment files (will be set via CapRover)
+**/*.env
+**/*.env.local
+**/appsettings.Development.json
+
+# Temporary files
+tmpclaude-*
+.claude/
+nul
+*.log
+output.txt
+
+# Testing
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Solution file (not needed in container)
+*.sln
+
+# Scripts
+scripts/

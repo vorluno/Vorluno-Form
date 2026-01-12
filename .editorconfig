@@ -1,0 +1,27 @@
+root = true
+
+# All files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C# and .NET project files
+[*.{cs,csproj,sln}]
+indent_style = space
+indent_size = 4
+
+# TypeScript, JavaScript, JSON, CSS
+[*.{ts,tsx,js,jsx,json,css}]
+indent_style = space
+indent_size = 2
+
+# Markdown
+[*.md]
+trim_trailing_whitespace = false
+
+# XML files
+[*.{xml,props,targets,config}]
+indent_style = space
+indent_size = 2
