@@ -73,9 +73,6 @@ vorluno-contact-form/
 ├── Dockerfile                        # Multi-stage production build
 ├── captain-definition                # CapRover deployment config
 ├── .env.example                      # Environment variables template
-├── DEPLOYMENT.md                     # Comprehensive deployment guide
-├── README-DOCKER.md                  # Docker quick start
-├── docker-test.sh                    # Local Docker testing script
 └── LICENSE                           # MIT License
 ```
 
@@ -130,23 +127,30 @@ npm run dev
 
 Frontend will be available at `http://localhost:5174`
 
-### Docker Development
+### Docker Testing
 
 ```bash
-# Quick test with automated script
-chmod +x docker-test.sh
-./docker-test.sh
-
-# Or manual
+# Build image
 docker build -t vorluno-contacto:test .
-docker run -p 8080:8080 \
+
+# Run container
+docker run -d -p 8080:8080 \
   -e Email__Brevo__ApiKey="your-key" \
   -e Email__From="contacto@vorluno.dev" \
   -e Email__To="your-email@example.com" \
+  -e Email__Logo__Url="https://vorluno.dev/assets/vorluno-logo.png" \
+  --name contacto-test \
   vorluno-contacto:test
-```
 
-See [README-DOCKER.md](./README-DOCKER.md) for more details.
+# Test health check
+curl http://localhost:8080/healthz
+
+# View logs
+docker logs -f contacto-test
+
+# Cleanup
+docker stop contacto-test && docker rm contacto-test
+```
 
 ## 🚢 Deployment
 
@@ -179,12 +183,6 @@ See [README-DOCKER.md](./README-DOCKER.md) for more details.
    - Add custom domain: `contacto.vorluno.dev`
    - Enable HTTPS & Force HTTPS
    - CapRover handles SSL cert automatically
-
-📖 **Full deployment guide**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for comprehensive instructions
-
-### Docker
-
-See [README-DOCKER.md](./README-DOCKER.md) for Docker-specific instructions.
 
 ---
 
@@ -243,16 +241,6 @@ Before deploying, configure Brevo:
 - **Base Image**: Alpine Linux
 - **Orchestration**: CapRover
 - **CI/CD**: GitHub Actions ready
-
----
-
-## 📚 Documentation
-
-| Document | Description |
-|----------|-------------|
-| [DEPLOYMENT.md](./DEPLOYMENT.md) | Complete CapRover deployment guide |
-| [README-DOCKER.md](./README-DOCKER.md) | Docker quick start and testing |
-| [.env.example](./.env.example) | Environment variables template |
 
 ---
 
