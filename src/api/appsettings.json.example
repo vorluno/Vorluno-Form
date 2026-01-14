@@ -9,21 +9,18 @@
 
   "Email": {
     "From": "contacto@vorluno.dev",
-    "To": "vorluno@gmail.com",
+    "To": "contacto@vorluno.dev",
 
     "BrandColor": "#7C3AED",
     "Logo": {
+      "Url": "https://contacto.vorluno.dev/email-assets/vorluno-logo.png",
       "File": "wwwroot/email-assets/vorluno-logo.png",
       "Cid": "vorlunoLogo"
     },
 
-    "Smtp": {
-      "Host": "smtp-relay.brevo.com",
-      "Port": 2525,
-      "UseStartTls": true,
-      "TimeoutMs": 15000,
-      "User": "",
-      "Password": ""
+    "Brevo": {
+      "ApiKey": "YOUR_BREVO_API_KEY_HERE",
+      "TimeoutMs": 15000
     },
 
     "Ack": {
@@ -33,6 +30,7 @@
       "HtmlBody": "",
       "TextBody": "Gracias por contactarnos. Hemos recibido tu mensaje y te contactaremos pronto. Saludos, Equipo Vorluno.",
       "Hero": {
+        "Url": "https://contacto.vorluno.dev/email-assets/vorluno-hero.png",
         "File": "wwwroot/email-assets/vorluno-hero.png",
         "Cid": "vorlunoHero"
       }

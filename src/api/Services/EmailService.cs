@@ -1,15 +1,14 @@
-using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
-using MailKit;
-using MailKit.Net.Smtp;
-using MailKit.Security;
+using brevo_csharp.Api;
+using brevo_csharp.Client;
+using brevo_csharp.Model;
 
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-using MimeKit;
+using Task = System.Threading.Tasks.Task;
 
 namespace Vorluno.Contacto.Api.Services;
 
@@ -17,13 +16,19 @@ public sealed class EmailService : IEmailService
 {
     private readonly EmailOptions _opt;
     private readonly ILogger<EmailService> _logger;
-    private readonly IWebHostEnvironment _env;
+    private readonly TransactionalEmailsApi _brevoApi;
 
-    public EmailService(IOptions<EmailOptions> opt, ILogger<EmailService> logger, IWebHostEnvironment env)
+    public EmailService(IOptions<EmailOptions> opt, ILogger<EmailService> logger)
     {
         _opt = opt.Value;
         _logger = logger;
-        _env = env;
+
+        // Configurar SDK de Brevo
+        brevo_csharp.Client.Configuration.Default.ApiKey.Clear();
+        brevo_csharp.Client.Configuration.Default.ApiKey.Add("api-key", _opt.Brevo.ApiKey);
+        brevo_csharp.Client.Configuration.Default.Timeout = _opt.Brevo.TimeoutMs;
+
+        _brevoApi = new TransactionalEmailsApi();
     }
 
     public async Task SendAsync(
@@ -38,49 +43,57 @@ public sealed class EmailService : IEmailService
         var from = (fromOverride ?? _opt.From)?.Trim();
         var toNorm = to?.Trim();
 
-        if (string.IsNullOrWhiteSpace(from) || !MailboxAddress.TryParse(from, out var fromAddr))
+        if (string.IsNullOrWhiteSpace(from) || !IsValidEmail(from))
             throw new ArgumentException("Remitente inválido (From). Revisa configuración Email:From o fromOverride.");
 
-        if (string.IsNullOrWhiteSpace(toNorm) || !MailboxAddress.TryParse(toNorm, out var toAddr))
+        if (string.IsNullOrWhiteSpace(toNorm) || !IsValidEmail(toNorm))
             throw new ArgumentException("Destinatario inválido (to).");
 
-        var msg = new MimeMessage();
-        msg.From.Add(fromAddr);
-        msg.To.Add(toAddr);
-        msg.Subject = subject ?? string.Empty;
-        msg.Headers.Add("X-Mailer", "Vorluno.Contacto/1.0");
-
-        var html = htmlBody ?? string.Empty;
-        var fallbackText = HtmlToText(html);
-
-        var builder = new BodyBuilder
+        // Construir email de Brevo
+        var sendSmtpEmail = new SendSmtpEmail
         {
-            HtmlBody = html,
-            TextBody = !string.IsNullOrWhiteSpace(textBody) ? textBody : fallbackText
+            Sender = new SendSmtpEmailSender(email: from),
+            To = new List<SendSmtpEmailTo> { new SendSmtpEmailTo(email: toNorm) },
+            Subject = subject ?? string.Empty,
+            HtmlContent = htmlBody ?? string.Empty,
+            TextContent = textBody ?? HtmlToText(htmlBody ?? string.Empty),
+            Headers = new Dictionary<string, string>
+            {
+                { "X-Mailer", "Vorluno.Contacto/1.0" }
+            }
         };
 
-        // Incrustar solo imágenes inline relevantes (logo, etc.)
-        EmbedInlineImages(builder, html);
-
-        if (attachments != null)
+        // Agregar attachments si los hay
+        if (attachments?.Any() == true)
         {
-            foreach (var a in attachments)
-            {
-                var parts = (a.ContentType ?? string.Empty).Split('/', 2);
-                var mimeType = parts.Length == 2
-                    ? new ContentType(parts[0], parts[1])
-                    : new ContentType("application", "octet-stream");
-
-                builder.Attachments.Add(a.FileName, a.Data, mimeType);
-            }
+            sendSmtpEmail.Attachment = attachments.Select(a =>
+                new SendSmtpEmailAttachment(
+                    content: a.Data,
+                    name: a.FileName
+                )
+            ).ToList();
         }
 
-        msg.Body = builder.ToMessageBody();
-        await SendWithRetryAsync(msg, ct);
-        _logger.LogInformation("Correo enviado a {To} con asunto {Subject}", toAddr.Address, msg.Subject);
+        await SendWithRetryAsync(sendSmtpEmail, ct);
+        _logger.LogInformation("Correo enviado a {To} con asunto {Subject}", toNorm, subject);
     }
 
     // ----------------- Helpers -----------------
+
+    private static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return false;
+
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private static string HtmlToText(string html)
     {
@@ -94,55 +107,7 @@ public sealed class EmailService : IEmailService
         return Regex.Replace(noTags, @"[ \t]+\n", "\n").Trim();
     }
 
-    private void EmbedInlineImages(BodyBuilder builder, string html)
-    {
-        // Logo inline por CID (vorluno-logo.png)
-        TryEmbed(builder, html, _opt.Logo?.File, _opt.Logo?.Cid);
-
-        // El hero del acuse ahora se sirve por URL pública,
-        // así que NO lo embebemos como recurso inline.
-        // TryEmbed(builder, html, _opt.Ack?.Hero?.File, _opt.Ack?.Hero?.Cid);
-    }
-
-    private void TryEmbed(BodyBuilder builder, string html, string? file, string? cid)
-    {
-        if (string.IsNullOrWhiteSpace(file) || string.IsNullOrWhiteSpace(cid))
-            return;
-
-        // Solo embebemos si el HTML realmente referencia el CID
-        if (!html.Contains($"cid:{cid}", StringComparison.OrdinalIgnoreCase))
-            return;
-
-        var path = Path.IsPathRooted(file)
-            ? file
-            : Path.Combine(_env.ContentRootPath, file);
-
-        if (!System.IO.File.Exists(path))
-        {
-            _logger.LogWarning("Inline image not found: {Path}", path);
-            return;
-        }
-
-        var res = builder.LinkedResources.Add(path);
-        res.ContentId = cid;
-        res.ContentDisposition = new MimeKit.ContentDisposition(MimeKit.ContentDisposition.Inline);
-
-        if (res is MimePart part)
-        {
-            var ext = Path.GetExtension(path).ToLowerInvariant();
-
-            part.ContentType.MediaType = "image";
-            part.ContentType.MediaSubtype = ext switch
-            {
-                ".png" => "png",
-                ".jpg" or ".jpeg" => "jpeg",
-                ".gif" => "gif",
-                _ => part.ContentType.MediaSubtype
-            };
-        }
-    }
-
-    private async Task SendWithRetryAsync(MimeMessage msg, CancellationToken ct)
+    private async Task SendWithRetryAsync(SendSmtpEmail email, CancellationToken ct)
     {
         const int maxAttempts = 3;
         var attempt = 0;
@@ -153,51 +118,34 @@ public sealed class EmailService : IEmailService
 
             try
             {
-                using var client = new SmtpClient { Timeout = _opt.Smtp.TimeoutMs };
-                var secure = _opt.Smtp.UseStartTls
-                    ? SecureSocketOptions.StartTls
-                    : SecureSocketOptions.Auto;
-
-                await client.ConnectAsync(_opt.Smtp.Host, _opt.Smtp.Port, secure, ct).ConfigureAwait(false);
-
-                if (!string.IsNullOrEmpty(_opt.Smtp.User))
-                    await client.AuthenticateAsync(_opt.Smtp.User, _opt.Smtp.Password, ct).ConfigureAwait(false);
-
-                await client.SendAsync(msg, ct).ConfigureAwait(false);
-                await client.DisconnectAsync(true, ct).ConfigureAwait(false);
-                return; // éxito
+                // El SDK de Brevo es síncrono, lo envolvemos en Task.Run
+                var result = await Task.Run(() => _brevoApi.SendTransacEmail(email), ct);
+                _logger.LogInformation("Email enviado exitosamente. MessageId: {MessageId}", result.MessageId);
+                return;
             }
-            catch (SmtpCommandException ex) when (IsTransient(ex.StatusCode) && attempt < maxAttempts)
+            catch (ApiException ex) when (IsTransientError(ex) && attempt < maxAttempts)
             {
                 _logger.LogWarning(ex,
-                    "SMTP transitorio ({Status}). Reintentando {Attempt}/{Max}...",
-                    ex.StatusCode, attempt, maxAttempts);
+                    "Error transitorio de API Brevo ({StatusCode}). Reintentando {Attempt}/{Max}...",
+                    ex.ErrorCode, attempt, maxAttempts);
             }
-            catch (ServiceNotConnectedException ex) when (attempt < maxAttempts)
+            catch (TaskCanceledException) when (attempt < maxAttempts)
             {
-                _logger.LogWarning(ex,
-                    "SMTP no conectado. Reintentando {Attempt}/{Max}...",
-                    attempt, maxAttempts);
+                _logger.LogWarning("Timeout en request a Brevo. Reintentando {Attempt}/{Max}...", attempt, maxAttempts);
             }
-            catch (SocketException ex) when (attempt < maxAttempts)
+            catch (Exception ex)
             {
-                _logger.LogWarning(ex,
-                    "Error de red. Reintentando {Attempt}/{Max}...",
-                    attempt, maxAttempts);
-            }
-            catch
-            {
+                _logger.LogError(ex, "Fallo al enviar email después de {Attempt} intentos", attempt);
                 throw;
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(2 * attempt), ct).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(2 * attempt), ct);
         }
     }
 
-    private static bool IsTransient(SmtpStatusCode code) => code is
-        SmtpStatusCode.InsufficientStorage or
-        SmtpStatusCode.MailboxBusy or
-        SmtpStatusCode.MailboxUnavailable or
-        SmtpStatusCode.TransactionFailed or
-        SmtpStatusCode.ServiceNotAvailable;
+    private static bool IsTransientError(ApiException ex)
+    {
+        // Errores 5xx del servidor o 429 (rate limit) son transitorios
+        return ex.ErrorCode >= 500 || ex.ErrorCode == 429;
+    }
 }

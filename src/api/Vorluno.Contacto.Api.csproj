@@ -37,8 +37,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="brevo_csharp" Version="1.1.1" />
 		<PackageReference Include="ClosedXML" Version="0.105.0" />
-		<PackageReference Include="MailKit" Version="4.14.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
 	</ItemGroup>
 

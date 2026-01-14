@@ -377,7 +377,8 @@ dist/
 
 # Environment & Secrets
 appsettings.Development.json
-!appsettings.json
+appsettings.json
+!appsettings.json.example
 !appsettings.Production.json
 
 # IDE

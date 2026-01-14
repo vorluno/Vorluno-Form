@@ -1,23 +1,18 @@
 # ===== STAGE 1: Build Frontend (Node.js + Vite) =====
-FROM node:18-alpine AS frontend-build
+FROM node:20-alpine AS frontend-build
 WORKDIR /src/web
 
 # Install frontend dependencies
 COPY src/web/package*.json ./
-RUN npm ci
+RUN npm ci --only=production
 
 # Copy frontend source and build
 COPY src/web/ ./
 RUN npm run build
 
-# ===== STAGE 2: Build Backend (.NET 9 + Node) =====
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS backend-build
+# ===== STAGE 2: Build Backend (.NET 9) =====
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS backend-build
 WORKDIR /src/api
-
-# Install Node.js for backend build process
-RUN apt-get update \
-    && apt-get install -y nodejs npm \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy backend project files
 COPY src/api/*.csproj ./
@@ -30,18 +25,35 @@ COPY src/api/ ./
 COPY --from=frontend-build /src/web/dist ./wwwroot
 
 # Publish backend
-RUN dotnet publish -c Release -o /app/publish
+RUN dotnet publish -c Release -o /app/publish --no-restore
 
 # ===== STAGE 3: Runtime (.NET 9) =====
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS final
+
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
 # Copy published app
 COPY --from=backend-build /app/publish .
 
-# Set environment
-ENV ASPNETCORE_URLS=http://+:80
-ENV ASPNETCORE_ENVIRONMENT=Production
-EXPOSE 80
+# Create non-root user
+RUN addgroup -g 1000 appuser && \
+    adduser -D -u 1000 -G appuser appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+# Set environment (CapRover will inject PORT, default to 8080)
+ENV ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
+EXPOSE 8080
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/healthz || exit 1
 
 ENTRYPOINT ["dotnet", "Vorluno.Contacto.Api.dll"]

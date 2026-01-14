@@ -42,11 +42,7 @@ public sealed class ContactoController : ControllerBase
             return BadRequest(new { ok = false, error = "Datos inválidos", errors = ModelState });
         }
 
-        var envTag = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development"
-            ? "[DEV] "
-            : string.Empty;
-
-        var subject = $"{envTag}Nuevo Lead Vorluno · {model.Nombre}";
+        var subject = $"[FORM] Nuevo Lead Vorluno - {model.Nombre}";
 
         // 1) HTML interno
         var html = BuildInternalHtml(model);
@@ -167,7 +163,7 @@ public sealed class ContactoController : ControllerBase
     <!-- Header con gradiente -->
     <div style=""background:linear-gradient(135deg, {BRAND_COLOR} 0%, {ACCENT_COLOR} 100%);padding:32px 24px;text-align:center"">
       <div style=""background:#fff;border-radius:12px;padding:16px;display:inline-block"">
-        <img src=""cid:{_opt.Logo.Cid}"" alt=""{BRAND}"" style=""height:48px;display:block"" />
+        <img src=""{_opt.Logo.Url ?? "https://contacto.vorluno.dev/email-assets/vorluno-logo.png"}"" alt=""{BRAND}"" style=""height:48px;display:block"" />
       </div>
       <h1 style=""color:#fff;margin:16px 0 4px;font-size:24px"">Nuevo Lead</h1>
       <p style=""color:rgba(255,255,255,0.9);margin:0;font-size:14px"">{m.FechaEnvio:yyyy-MM-dd HH:mm:ss} UTC</p>
@@ -176,7 +172,7 @@ public sealed class ContactoController : ControllerBase
     <!-- Contenido -->
     <div style=""padding:32px 24px"">
 
-      <h2 style=""color:#111827;font-size:18px;margin:0 0 16px"">📋 Información de Contacto</h2>
+      <h2 style=""color:#111827;font-size:18px;margin:0 0 16px"">Información de Contacto</h2>
       <table style=""width:100%;border-collapse:collapse;margin-bottom:24px"">
         <tr>
           <td style=""padding:8px 0;color:#6b7280;font-size:14px;width:40%""><strong>Nombre:</strong></td>
@@ -197,7 +193,7 @@ public sealed class ContactoController : ControllerBase
         </tr>")}
       </table>
 
-      <h2 style=""color:#111827;font-size:18px;margin:24px 0 16px"">💡 Detalles del Proyecto</h2>
+      <h2 style=""color:#111827;font-size:18px;margin:24px 0 16px"">Detalles del Proyecto</h2>
       <table style=""width:100%;border-collapse:collapse;margin-bottom:24px"">
         <tr>
           <td style=""padding:8px 0;color:#6b7280;font-size:14px;width:40%""><strong>Tipo de Proyecto:</strong></td>
@@ -217,7 +213,7 @@ public sealed class ContactoController : ControllerBase
         </tr>
       </table>
 
-      <h2 style=""color:#111827;font-size:18px;margin:24px 0 16px"">📝 Mensaje</h2>
+      <h2 style=""color:#111827;font-size:18px;margin:24px 0 16px"">Mensaje</h2>
       <div style=""background:#f9fafb;padding:16px;border-radius:8px;border-left:4px solid {BRAND_COLOR}"">
         <p style=""margin:0;color:#374151;font-size:14px;line-height:1.6;white-space:pre-wrap"">{m.Mensaje}</p>
       </div>
@@ -252,7 +248,7 @@ public sealed class ContactoController : ControllerBase
     <!-- Hero con gradiente -->
     <div style=""background:linear-gradient(135deg, {BRAND_COLOR} 0%, {ACCENT_COLOR} 100%);padding:48px 24px;text-align:center"">
       <div style=""background:#fff;border-radius:12px;padding:16px;display:inline-block;margin-bottom:24px"">
-        <img src=""cid:{_opt.Logo.Cid}"" alt=""{BRAND}"" style=""height:48px;display:block"" />
+        <img src=""{_opt.Logo.Url ?? "https://contacto.vorluno.dev/email-assets/vorluno-logo.png"}"" alt=""{BRAND}"" style=""height:48px;display:block"" />
       </div>
       <h1 style=""color:#fff;margin:0 0 12px;font-size:28px"">¡Gracias por contactarnos!</h1>
       <p style=""color:rgba(255,255,255,0.95);margin:0;font-size:16px"">Hemos recibido tu solicitud</p>
@@ -271,7 +267,7 @@ public sealed class ContactoController : ControllerBase
       <div style=""background:#f9fafb;padding:24px;border-radius:8px;margin:24px 0"">
         <p style=""margin:0 0 8px;color:#374151;font-size:14px""><strong>Mientras tanto...</strong></p>
         <p style=""margin:0;color:#6b7280;font-size:14px;line-height:1.6"">
-          Puedes conocer más sobre nuestros proyectos y servicios en nuestras redes sociales.
+          Puedes conocer más sobre nuestros proyectos y servicios en <a href=""https://vorluno.dev"" style=""color:{BRAND_COLOR};text-decoration:none"">vorluno.dev</a>.
         </p>
       </div>
 
