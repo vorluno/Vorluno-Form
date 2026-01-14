@@ -2,9 +2,9 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /src/web
 
-# Install frontend dependencies
+# Install frontend dependencies (including devDependencies for build)
 COPY src/web/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy frontend source and build
 COPY src/web/ ./
